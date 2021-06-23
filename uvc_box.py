@@ -89,12 +89,10 @@ class scan_objects(object):
             contour = contours('scans/objects_0.jpg')
             contour.filters()
             contour.contours()
-            print('Main area', contour.get_areas_of_contours())
 
             area_list, self.total_area = contour.get_areas_of_contours()
             self.contour_count = contour.get_amout_of_contours()
 
-            contour.show_image() 
             self.start = 1
  
         elif self.start == 1:
@@ -105,9 +103,7 @@ class scan_objects(object):
             self.index_list = detect.get_index_list()
     
             self.object_count, object_names = detect.get_name_of_object()
-            print('scan name',self.object_count, object_names)
 
-            detect.show_image()
             self.start = 2
         
         elif self.start == 2:
@@ -118,7 +114,6 @@ class scan_objects(object):
                 for index in self.index_list:
                     object_time = dataframe.iloc[index,1]
                     total_object_time = object_time + total_object_time
-                    print('time',total_object_time)
 
                 scan_objects.desinfect_time = total_object_time
             else:
