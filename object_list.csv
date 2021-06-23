@@ -1,0 +1,81 @@
+"object","time"
+"person",0
+"bicycle",0
+"car",0
+"motorcycle",0
+"airplane",0
+"bus",0
+"train",0
+"truck",0
+"boat",0
+"traffic light",0
+"fire hydrant",0
+"stop sign",0
+"parking meter",0
+"bench",0
+"bird",0
+"cat",0
+"dog",0
+"horse",0
+"sheep",0
+"cow",0
+"elephant",0
+"bear",0
+"zebra",0
+"giraffe",0
+"backpack",0
+"umbrella",0
+"handbag", 10
+"tie",3
+"suitcase",0
+"frisbee",3
+"skis",0
+"snowboard",0
+"sports ball",0
+"kite",0
+"baseball bat",0
+"baseball glove",0
+"skateboard",0
+"surfboard",0
+"tennis racket",0
+"bottle",3
+"wine glass",3
+"cup",2
+"fork",1
+"knife",1
+"spoon",1
+"bowl",2
+"banana",2
+"apple",2
+"sandwich",2
+"orange",2
+"broccoli",2
+"carrot",2
+"hot dog",2
+"pizza",2
+"donut",1
+"cake",1
+"chair",0
+"couch",0
+"potted plant",5
+"bed",0
+"dining table",0
+"toilet",0
+"tv",5
+"laptop",5
+"mouse",3
+"remote",4
+"keyboard",5
+"cell phone",5
+"microwave",0
+"oven",0
+"toaster",0
+"sink",0
+"refrigerator",0
+"book",6
+"clock",2
+"vase",0
+"scissors",3
+"teddy bear",10
+"hair drier",4
+"toothbrush",6
