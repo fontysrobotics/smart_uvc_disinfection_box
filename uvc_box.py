@@ -99,9 +99,7 @@ class scan_objects(object):
             detect = yolo('scans/objects_0.jpg')
             detect.detect_object()
 
-            print('scan index', detect.get_index_list())
-            self.index_list = detect.get_index_list()
-    
+            self.index_list = detect.get_index_list()    
             self.object_count, object_names = detect.get_name_of_object()
 
             self.start = 2
