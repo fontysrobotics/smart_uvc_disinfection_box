@@ -15,7 +15,7 @@ from contours import contours
 from util import colorWipe, theaterChase, take_picture
 from rpi_ws281x import PixelStrip, Color
 
-mylcd = I2C_LCD_driver.lcd() 
+mylcd = I2C_LCD_driver.lcd()
 relay1 = DigitalOutputDevice(23)
 relay2 = DigitalOutputDevice(24)
 
@@ -40,13 +40,25 @@ class idle(object):
 
     def execute(self):
         mylcd.lcd_display_string("press green", 1, 0)
-        mylcd.lcd_display_string("to start", 2, 0)     
+        mylcd.lcd_display_string("to start", 2, 0)    
         print('idle')
+
+class start(object):
+    def __init__(self):
+        relay1.off()
+        relay2.off()
+        colorWipe(strip, Color(255, 255, 255), (0,25))
+        colorWipe(strip, Color(0, 255, 0), (25,54))
+
+    def execute(self):
+        mylcd.lcd_display_string("close door", 1, 0)  
+        print('close door')
 
 class scan_objects(object):
     desinfect_time = None
+    scanning = False
     def __init__(self):
-        
+       
         strip_1 = PixelStrip(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, 200, LED_CHANNEL)
         strip_1.begin()
         colorWipe(strip_1, Color(255, 205, 50), (0,25))
@@ -60,12 +72,13 @@ class scan_objects(object):
         self.start = 0
         self.total_area = 0 
         self.value = 0
+        scan_objects.scanning = False
 
-    def execute(self): 
+    def execute(self):
         if self.start == 0 or self.start == 1:      
             mylcd.lcd_display_string("scanning objects", 1, 0)
             mylcd.lcd_display_string("please wait", 2, 0)
-        
+       
         elif(self.start == 2):
             mylcd.lcd_clear()
         else:
@@ -77,7 +90,7 @@ class scan_objects(object):
                 mylcd.lcd_clear()
                 self.value = 0
 
-            elif reedswitch.is_active: 
+            elif reedswitch.is_active:
                 mylcd.lcd_display_string("door closed", 1, 0)
                 mylcd.lcd_display_string("please wait", 2, 0)
                 self.value = 1
@@ -89,23 +102,29 @@ class scan_objects(object):
             contour = contours('scans/objects_0.jpg')
             contour.filters()
             contour.contours()
+            print('Main area', contour.get_areas_of_contours())
 
             area_list, self.total_area = contour.get_areas_of_contours()
             self.contour_count = contour.get_amout_of_contours()
 
+            contour.show_image()
             self.start = 1
  
         elif self.start == 1:
             detect = yolo('scans/objects_0.jpg')
             detect.detect_object()
 
-            self.index_list = detect.get_index_list()    
+            print('scan index', detect.get_index_list())
+            self.index_list = detect.get_index_list()
+   
             self.object_count, object_names = detect.get_name_of_object()
+            print('scan name',self.object_count, object_names)
 
+            detect.show_image()
             self.start = 2
-        
+       
         elif self.start == 2:
-            if self.object_count == self.contour_count:
+            if self.object_count >= self.contour_count:
                 dataframe = pd.read_csv('object_list.csv')
                 total_object_time = 0
 
@@ -116,8 +135,9 @@ class scan_objects(object):
                 scan_objects.desinfect_time = total_object_time
             else:
                 scan_objects.desinfect_time = self.total_area * 0.0005
-                
+               
             self.start = 3
+            scan_objects.scanning = True
 
         print('scan_objects')
 
@@ -128,7 +148,7 @@ class desinfect(object):
         colorWipe(strip, Color(0, 0, 0), (0,25))
         colorWipe(strip, Color(136, 13, 190), (25,54))
 
-    def execute(self):   
+    def execute(self):  
         mylcd.lcd_display_string("desinfecting", 1, 0)
         mylcd.lcd_display_string("time left: {}".format(Model.time_left), 2, 0)
         mylcd.lcd_display_string("s", 2, 15)
@@ -167,7 +187,7 @@ class stop(object):
         relay1.off()
         relay2.off()
         colorWipe(strip, Color(255, 255, 255), (0,25))
-        
+       
     def execute(self):
         mylcd.lcd_display_string("stopped", 1, 0)
         theaterChase(strip, Color(255, 0, 0), (25,54))
@@ -202,6 +222,7 @@ class Model(object):
         self.strategy = idle()
 
         self.start = 0
+        self.start1 = 0
         self.start_time = 0
 
         self.cap = None
@@ -212,6 +233,9 @@ class Model(object):
 
     def on_enter_idle(self):
         self.strategy = idle()
+
+    def on_enter_start(self):
+        self.strategy = start()
 
     def on_enter_scan_objects(self):
         self.strategy = scan_objects()
@@ -245,7 +269,7 @@ class Model(object):
 
     def orange_button(self):
         button_orange = Button(27)
-        
+       
         if button_orange.is_active:
             time.sleep(0.01)  
             return True
@@ -267,7 +291,7 @@ class Model(object):
             self.cap = cv2.VideoCapture(0+cv2.CAP_ANY)
             self.fgbg = cv2.createBackgroundSubtractorMOG2()
             self.start = 1
-            
+           
         else:
             ret, frame = self.cap.read()
 
@@ -295,10 +319,10 @@ class Model(object):
     def door_closed(self):
         reedswitch = Button(16)
 
-        if reedswitch.is_active: 
+        if reedswitch.is_active:
             time.sleep(0.01)  
             return True
-            
+           
         else:
             time.sleep(0.01)
             return False
@@ -306,21 +330,21 @@ class Model(object):
     def door_open(self):
         reedswitch = Button(16)
 
-        if reedswitch.is_active: 
+        if reedswitch.is_active:
             return False
-            
-        else: 
+           
+        else:
             return True     
 
     def clear(self):
         if self.cap != None:
             self.cap.release()
         mylcd.lcd_clear()
-    
+   
     def time_delay(self):
         time.sleep(1.5)
 
-    def time_delay2(self): 
+    def time_delay2(self):
         if self.start == 0:
             self.start_time = time.time()
             self.start = 1
@@ -330,10 +354,27 @@ class Model(object):
         if (time_now - self.start_time) > 3:
             self.start = 0
             return True
-        else: 
+        else:
             return False
 
-    def desinfect_time(self): 
+    def no_desinfect_time(self):
+        if scan_objects.desinfect_time == 0 and scan_objects.scanning == True:
+            mylcd.lcd_display_string("no objects found", 1, 0)
+            if self.start1 == 0:
+                self.start_time = time.time()
+                self.start1 = 1
+
+            time_now = time.time()
+
+            if (time_now - self.start_time) > 3:
+                self.start1 = 0
+                return True
+            else:
+                return False
+        else:
+            return False
+
+    def desinfect_time(self):
         if self.start == 0:
             self.start_time = time.time()
             self.start = 1
@@ -341,7 +382,7 @@ class Model(object):
         time_now = time.time()
         Model.time_left = scan_objects.desinfect_time - (time_now - self.start_time)
         Model.time_left = round(Model.time_left)
-        
+       
         if (time_now - self.start_time) > scan_objects.desinfect_time:
             scan_objects.desinfect_time = 0
             self.start = 0
@@ -349,15 +390,16 @@ class Model(object):
         else:
             return False
 
-states = ['idle' , 'scan_objects' , 'desinfect' , 'pause' , 'stop' , 'resume' , 'error', 'finish']
+states = ['idle' , 'start', 'scan_objects' , 'desinfect' , 'pause' , 'stop' , 'resume' , 'error', 'finish']
 
-transitions = [{'trigger': 'loop', 'source': 'idle', 'dest': 'scan_objects', 'conditions': 'green_button', 'after': "clear"},
-               {'trigger': 'loop', 'source': 'scan_objects', 'dest': 'desinfect', 'conditions': ['door_closed', 'no_movement'], 'after': "clear"},
+transitions = [{'trigger': 'loop', 'source': 'idle', 'dest': 'start', 'conditions': 'green_button', 'after': "clear"},
+               {'trigger': 'loop', 'source': 'start', 'dest': 'scan_objects', 'conditions': 'door_closed', 'after': "clear"},
+               {'trigger': 'loop', 'source': 'scan_objects', 'dest': 'idle', 'conditions': ['no_desinfect_time'], 'after': "clear"},
+               {'trigger': 'loop', 'source': ['scan_objects', 'resume'], 'dest': 'desinfect', 'conditions': ['door_closed', 'no_movement'], 'after': "clear"},
                {'trigger': 'loop', 'source': 'desinfect', 'dest': 'pause', 'conditions': 'orange_button', 'after': ["clear", "time_delay"]},
                {'trigger': 'loop', 'source': 'pause', 'dest': 'resume', 'conditions': 'orange_button', 'after': "clear"},
                {'trigger': 'loop', 'source': ['desinfect', 'scan_objects'], 'dest': 'stop', 'conditions': 'red_button', 'after': "clear"},
                {'trigger': 'loop', 'source': 'stop', 'dest': 'idle', 'conditions': 'time_delay2', 'after': "clear"},
-               {'trigger': 'loop', 'source': 'resume', 'dest': 'desinfect', 'conditions': ['door_closed', 'no_movement'], 'after': "clear"},
                {'trigger': 'loop', 'source': 'desinfect', 'dest': 'error', 'conditions': 'door_open', 'after': "clear"},
                {'trigger': 'loop', 'source': 'error', 'dest': 'idle', 'conditions': 'red_button', 'after': "clear"},
                {'trigger': 'loop', 'source': 'desinfect', 'dest': 'finish', 'conditions': 'desinfect_time', 'after': "clear"},
