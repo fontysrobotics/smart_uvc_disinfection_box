@@ -23,18 +23,24 @@ def colorWipe(strip, color, range_led, wait_ms=50):
         time.sleep(wait_ms / 1000.0)
 
 if __name__ == '__main__':
+    # Turn on the lights
     strip = PixelStrip(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL)
     strip.begin()
     colorWipe(strip, Color(255, 255, 255), (0,20))
     
+    # Create camera object and create the background subtractor so only movement is shown.
     cap = cv2.VideoCapture(0+cv2.CAP_ANY)
     fgbg = cv2.createBackgroundSubtractorMOG2()
 
     while True:
+        # Open camera and apply mask to frame.
         ret, frame = cap.read()
         fgmask = fgbg.apply(frame)
-
+          
+        # Calculate the percentage of the pixels in the window.
         percentage = (fgmask> 0).mean()
+          
+        # Create timer. If there is no movement for more then 5 seconds it is considered save.
         if percentage > 0.01:
             time_start = time.time()
             start = 0
