@@ -1,4 +1,4 @@
-from os import system
+from os import system 
 system("sudo pigpiod")
 from transitions.extensions import GraphMachine as Machine
 from gpiozero import Button, DigitalOutputDevice, TonalBuzzer
@@ -15,11 +15,11 @@ from contours import contours
 from util import colorWipe, theaterChase, take_picture
 from rpi_ws281x import PixelStrip, Color
 
-mylcd = I2C_LCD_driver.lcd()
+mylcd = I2C_LCD_driver.lcd() 
 relay1 = DigitalOutputDevice(23)
 relay2 = DigitalOutputDevice(24)
 
-# LED strip configuration:
+LED strip configuration:
 LED_COUNT = 54        # Number of LED pixels.
 LED_PIN = 12          # GPIO pin connected to the pixels (18 uses PWM!).
 LED_FREQ_HZ = 800000  # LED signal frequency in hertz (usually 800khz)
@@ -51,14 +51,14 @@ class start(object):
         colorWipe(strip, Color(0, 255, 0), (25,54))
 
     def execute(self):
-        mylcd.lcd_display_string("close door", 1, 0)  
+        mylcd.lcd_display_string("close door", 1, 0)   
         print('close door')
 
 class scan_objects(object):
     desinfect_time = None
     scanning = False
     def __init__(self):
-       
+        
         strip_1 = PixelStrip(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, 200, LED_CHANNEL)
         strip_1.begin()
         colorWipe(strip_1, Color(255, 205, 50), (0,25))
@@ -74,12 +74,14 @@ class scan_objects(object):
         self.value = 0
         scan_objects.scanning = False
 
-    def execute(self):
+    def execute(self): 
         if self.start == 0 or self.start == 1:      
+
             mylcd.lcd_display_string("scanning objects", 1, 0)
             mylcd.lcd_display_string("please wait", 2, 0)
-       
+        
         elif(self.start == 2):
+            
             mylcd.lcd_clear()
         else:
             reedswitch = Button(16)
@@ -90,7 +92,7 @@ class scan_objects(object):
                 mylcd.lcd_clear()
                 self.value = 0
 
-            elif reedswitch.is_active:
+            elif reedswitch.is_active: 
                 mylcd.lcd_display_string("door closed", 1, 0)
                 mylcd.lcd_display_string("please wait", 2, 0)
                 self.value = 1
@@ -107,22 +109,21 @@ class scan_objects(object):
             area_list, self.total_area = contour.get_areas_of_contours()
             self.contour_count = contour.get_amout_of_contours()
 
-            contour.show_image()
+            # contour.show_image() 
             self.start = 1
  
         elif self.start == 1:
             detect = yolo('scans/objects_0.jpg')
             detect.detect_object()
 
-            print('scan index', detect.get_index_list())
             self.index_list = detect.get_index_list()
-   
+    
             self.object_count, object_names = detect.get_name_of_object()
             print('scan name',self.object_count, object_names)
 
-            detect.show_image()
+            # detect.show_image()
             self.start = 2
-       
+        
         elif self.start == 2:
             if self.object_count >= self.contour_count:
                 dataframe = pd.read_csv('object_list.csv')
@@ -135,7 +136,7 @@ class scan_objects(object):
                 scan_objects.desinfect_time = total_object_time
             else:
                 scan_objects.desinfect_time = self.total_area * 0.0005
-               
+            print('Time to disinfect = ', scan_objects.desinfect_time) 
             self.start = 3
             scan_objects.scanning = True
 
@@ -148,7 +149,7 @@ class desinfect(object):
         colorWipe(strip, Color(0, 0, 0), (0,25))
         colorWipe(strip, Color(136, 13, 190), (25,54))
 
-    def execute(self):  
+    def execute(self):   
         mylcd.lcd_display_string("desinfecting", 1, 0)
         mylcd.lcd_display_string("time left: {}".format(Model.time_left), 2, 0)
         mylcd.lcd_display_string("s", 2, 15)
@@ -187,7 +188,7 @@ class stop(object):
         relay1.off()
         relay2.off()
         colorWipe(strip, Color(255, 255, 255), (0,25))
-       
+        
     def execute(self):
         mylcd.lcd_display_string("stopped", 1, 0)
         theaterChase(strip, Color(255, 0, 0), (25,54))
@@ -197,6 +198,9 @@ class resume(object):
     def __init__(self):
         colorWipe(strip, Color(255, 255, 255), (0,25))
         colorWipe(strip, Color(0, 0, 255), (25,54))
+        Model.start = 0
+        scan_objects.desinfect_time = Model.time_left
+        print(Model.time_left)
 
     def execute(self):        
         mylcd.lcd_display_string("resume programm", 1, 0)
@@ -216,6 +220,7 @@ class error(object):
 
 class Model(object):
     time_left = 0
+    start = 0
     def __init__(self):
         relay1.off()
         relay2.off()
@@ -223,6 +228,7 @@ class Model(object):
 
         self.start = 0
         self.start1 = 0
+        self.start2 = 0
         self.start_time = 0
 
         self.cap = None
@@ -261,15 +267,15 @@ class Model(object):
     def green_button(self):
         button_green = Button(17)
         if button_green.is_active:
-            time.sleep(0.01)  
+            time.sleep(0.03)  
             return True
         else:
-            time.sleep(0.01)  
+            time.sleep(0.03)  
             return False
 
     def orange_button(self):
         button_orange = Button(27)
-       
+        
         if button_orange.is_active:
             time.sleep(0.01)  
             return True
@@ -287,11 +293,11 @@ class Model(object):
             return False
 
     def no_movement(self):
-        if self.start == 0:
+        if self.start2 == 0:
             self.cap = cv2.VideoCapture(0+cv2.CAP_ANY)
             self.fgbg = cv2.createBackgroundSubtractorMOG2()
-            self.start = 1
-           
+            self.start2 = 1
+            
         else:
             ret, frame = self.cap.read()
 
@@ -302,16 +308,16 @@ class Model(object):
                 percentage = (fgmask> 0).mean()
 
                 if percentage > 0.01:
-                    self.start = 1
+                    self.start2 = 1
                     return False
                 else:
                     time_now = time.time()
-                    if self.start == 1:
+                    if self.start2 == 1:
                         self.time_start = time.time()
-                        self.start = 2
-
+                        self.start2 = 2
+                    
                     if (time_now-self.time_start)>5:
-                        self.start = 0 
+                        self.start2 = 0 
                         self.cap.release()
                         return True
                     return False
@@ -319,10 +325,10 @@ class Model(object):
     def door_closed(self):
         reedswitch = Button(16)
 
-        if reedswitch.is_active:
+        if reedswitch.is_active: 
             time.sleep(0.01)  
             return True
-           
+            
         else:
             time.sleep(0.01)
             return False
@@ -330,21 +336,21 @@ class Model(object):
     def door_open(self):
         reedswitch = Button(16)
 
-        if reedswitch.is_active:
+        if reedswitch.is_active: 
             return False
-           
-        else:
+            
+        else: 
             return True     
 
     def clear(self):
         if self.cap != None:
             self.cap.release()
-        mylcd.lcd_clear()
-   
+        # mylcd.lcd_clear()
+    
     def time_delay(self):
         time.sleep(1.5)
 
-    def time_delay2(self):
+    def time_delay2(self): 
         if self.start == 0:
             self.start_time = time.time()
             self.start = 1
@@ -354,12 +360,12 @@ class Model(object):
         if (time_now - self.start_time) > 3:
             self.start = 0
             return True
-        else:
+        else: 
             return False
 
     def no_desinfect_time(self):
         if scan_objects.desinfect_time == 0 and scan_objects.scanning == True:
-            mylcd.lcd_display_string("no objects found", 1, 0)
+            print('No objects found')
             if self.start1 == 0:
                 self.start_time = time.time()
                 self.start1 = 1
@@ -369,23 +375,23 @@ class Model(object):
             if (time_now - self.start_time) > 3:
                 self.start1 = 0
                 return True
-            else:
+            else: 
                 return False
         else:
             return False
 
-    def desinfect_time(self):
-        if self.start == 0:
+    def desinfect_time(self): 
+        if Model.start == 0:
             self.start_time = time.time()
-            self.start = 1
+            Model.start = 1
 
         time_now = time.time()
         Model.time_left = scan_objects.desinfect_time - (time_now - self.start_time)
         Model.time_left = round(Model.time_left)
-       
-        if (time_now - self.start_time) > scan_objects.desinfect_time:
+        
+        if Model.time_left <= 0:
             scan_objects.desinfect_time = 0
-            self.start = 0
+            Model.start = 0
             return True
         else:
             return False
