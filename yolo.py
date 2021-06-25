@@ -8,7 +8,8 @@ class yolo():
         self.Width = self.image.shape[1]
         self.Height = self.image.shape[0]
         self.scale = 0.00392 # if one it can see in the small box a table.
-
+        
+        # Create list with all the names of the objects.
         with open('yolov3/yolov3.txt', 'r') as f:
             self.classes = [line.strip() for line in f.readlines()]
 
@@ -23,6 +24,9 @@ class yolo():
         self.object_list = []
 
     def detect_object(self):
+        # Function for finding the objects. 
+        # Then filtering the objects in likelihood of being the object. 
+        # Then suppressing the worser overlapping boxes.
         outs = self.blob_from_network()
         self.find_high_confidence_boxes(outs)
         self.non_max_supression()
@@ -43,6 +47,8 @@ class yolo():
         return outs
 
     def find_high_confidence_boxes(self, outs):
+        # Find all the objects that are likily to be the object.
+        # Adding those objects to lists with the index of what the object is, The confidence value and the location of the boxes in the picture. 
         for out in outs:
             for detection in out:
                 scores = detection[5:]
@@ -60,6 +66,8 @@ class yolo():
                     self.boxes.append([x, y, w, h])
 
     def non_max_supression(self):
+        # Suppress all the boxes that overlap. based on the confidence, threshold of the confidence and non max suppression threshold.
+        # Then create a list with the indexs of the objects, the names of the objects and draw the prediction of the objects.
         indices = cv2.dnn.NMSBoxes(self.boxes, self.confidences, self.conf_threshold, self.nms_threshold)
 
         for i in indices:
@@ -82,24 +90,30 @@ class yolo():
         return output_layers
 
     def draw_prediction(self, img, class_id, confidence, x, y, x_plus_w, y_plus_h):
+        # Draw the bounding boxes with a label of the name and the confidence.
         label = str(self.classes[class_id]) + ', ' + str(round(confidence,1))
         color = self.COLORS[class_id]
         cv2.rectangle(img, (x,y), (x_plus_w,y_plus_h), color, 2)
         cv2.putText(img, label, (x-10,y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
     def create_index_list_of_object(self, i):
+        # Create the index list.
         self.index_list.append(i)
 
     def create_name_of_object(self, class_id):
+        # Create the list of names.
         self.object_list.append(str(self.classes[class_id]))
 
     def get_index_list(self):
+        # Return the index list
         return self.index_list
 
     def get_name_of_object(self):
+        # Return the length of the object list with the list.
         return len(self.object_list), self.object_list
 
     def show_image(self):
+        # Show the image
         cv2.imshow("object detection", self.image)
         cv2.waitKey()
         cv2.destroyAllWindows()
